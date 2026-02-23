@@ -18,6 +18,11 @@ def next_step():
     st.session_state.step += 1
     st.session_state.ex_checked = False
 
+def show_image(img_name):
+    path = os.path.join("materials", img_name)
+    if os.path.exists(path):
+        st.image(path)
+
 st.markdown("## На родном. Татарча.")
 st.markdown("Персонализированные уроки на основе живых аудио и видеоматериалов: загружайте свои файлы или выбирайте готовые ролики по интересам — сервис сам превратит их в цепочку понятных упражнений, чтобы вы постепенно и уверенно осваивали татарский язык.")
 st.download_button("Скачать пример урока (PDF)", b"PDF", file_name="example.pdf")
@@ -25,6 +30,7 @@ st.divider()
 
 if st.session_state.step == 0:
     st.chat_message("assistant").write("Здравствуйте! Исәнмесез! Я помогу вам превратить аудио и видеоматериалы в персональный урок татарского языка. Нажмите кнопку „Алга!“, чтобы начать.")
+    show_image("Картинка 1.jpeg")
     st.button("Алга!", on_click=next_step)
 
 elif st.session_state.step == 1:
@@ -78,6 +84,7 @@ elif st.session_state.step == 2:
 
 elif st.session_state.step == 3:
     st.info("Сейчас вы знакомитесь с живым татарским текстом с подсказками-переводами. Просто читайте текст и в случае трудностей обращайтесь к переводу — так вы естественно привыкаете к языку, расширяете словарный запас и начинаете понимать фразы целиком, а не по одному слову.")
+    show_image("Картинка 5.jpg")
     st.write(st.session_state.lesson_data.get('frank_text', ''))
     st.button("Перейти к следующему упражнению", on_click=next_step)
 
@@ -85,6 +92,7 @@ elif st.session_state.step == 4:
     st.info("Ниже вы найдёте самые важные слова и выражения из текста. Освоив этот небольшой набор лексики, вы сможете увереннее понимать и использовать татарский в похожих ситуациях.")
     st.write(st.session_state.lesson_data.get('collocations', '').split('|||')[0])
     st.write("Отлично! Чем лучше вы знаете эти слова, тем увереннее будете чувствовать себя в следующих заданиях.")
+    show_image("Картинка 2.jpg")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -95,9 +103,11 @@ elif st.session_state.step == 4:
 elif st.session_state.step == 5:
     st.info("Сейчас вы тренируете быстрый отклик: сопоставляя фразы на татарском с переводом, вы закрепляете значения и учитесь узнавать знакомые выражения „на лету“ — так понимание речи становится проще и увереннее.")
     st.write(st.session_state.lesson_data.get('matching', '').split('|||')[0])
+    st.write("Сопоставьте фразы на татарском и переводы. Напишите ответы в формате „1A 2B 3C…“ (используйте английские буквы) одним сообщением.")
     
     if not st.session_state.ex_checked:
         st.text_input("Ваш ответ", key="ans_match")
+        st.write("---")
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Проверить", key="chk_match"):
@@ -108,14 +118,17 @@ elif st.session_state.step == 5:
             st.button("Пропустить упражнение", on_click=next_step, key="skip_match")
     else:
         st.success("Отличная работа! Ваш ответ учтен.")
+        show_image("Картинка 3.jpg")
         st.button("Перейти к следующему упражнению", on_click=next_step, key="next_match")
 
 elif st.session_state.step == 6:
     st.info("Это задание помогает довести новые слова до автоматизма. Подставляя пропущенные слова в нужный контекст, вы проверяете себя и учитесь правильно использовать лексику и грамматику в реальных фразах.")
     st.write(st.session_state.lesson_data.get('gap_fill', '').split('|||')[0])
+    st.write("Заполните пропуски подходящими словами. Напишите ответы в формате „1a 2b 3c…“ (укажите цифру и букву правильного варианта) одним сообщением.")
     
     if not st.session_state.ex_checked:
         st.text_input("Ваш ответ", key="ans_gap")
+        st.write("---")
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Проверить", key="chk_gap"):
@@ -126,14 +139,17 @@ elif st.session_state.step == 6:
             st.button("Пропустить упражнение", on_click=next_step, key="skip_gap")
     else:
         st.success("Отличная работа! Ваш ответ учтен.")
+        show_image("Картинка 3.jpg")
         st.button("Перейти к следующему упражнению", on_click=next_step, key="next_gap")
 
 elif st.session_state.step == 7:
     st.info("Здесь вы переходите от пассивного понимания к активной речи. Продолжая предложения, вы пробуете формулировать мысли по-татарски, а сервис мягко подскажет, насколько естественно звучит ваш вариант.")
     st.write(st.session_state.lesson_data.get('logical', '').split('|||')[0])
+    st.write("Выберите вариант, который лучше всего продолжает предложение. Напишите ответы в формате „1a 2b 3c…“ одним сообщением.")
     
     if not st.session_state.ex_checked:
         st.text_input("Ваш ответ", key="ans_log")
+        st.write("---")
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Проверить", key="chk_log"):
@@ -144,15 +160,38 @@ elif st.session_state.step == 7:
             st.button("Пропустить упражнение", on_click=next_step, key="skip_log")
     else:
         st.success("Здорово! Вы пробуете выражать свои мысли по-татарски — с каждым таким шагом речь становится увереннее.")
+        show_image("Картинка 2.jpg")
         st.button("Перейти к следующему упражнению", on_click=next_step, key="next_log")
 
 elif st.session_state.step == 8:
     st.info("Сейчас вы разбираете самые важные грамматические конструкции из текста. Короткое объяснение и примеры помогут понять, как устроена фраза по-татарски, чтобы вы могли строить такие же предложения сами — увереннее и без лишних ошибок.")
-    st.write("Грамматика из этого текста")
-    st.write(st.session_state.lesson_data.get('grammar', '').split('|||')[0])
-    st.write("Чем лучше вы понимаете, как устроены эти конструкции, тем легче строить свои предложения без ошибок.")
     
-    st.button("Пропустить упражнение", on_click=next_step, key="skip_gram")
+    grammar_raw = st.session_state.lesson_data.get('grammar', '').split('|||')[0]
+    blocks = [b.strip() for b in grammar_raw.split('===') if b.strip()]
+    if not blocks:
+        blocks = [grammar_raw]
+        
+    if not st.session_state.ex_checked:
+        for i, block in enumerate(blocks):
+            st.write(block)
+            if "Практика" in block or "практика" in block.lower() or i > 0:
+                st.text_input("Ваш ответ:", key=f"ans_gram_{i}")
+                
+        st.write("---")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Проверить", key="chk_gram"):
+                st.session_state.score += 1
+                st.session_state.ex_checked = True
+                st.rerun()
+        with col2:
+            st.button("Пропустить упражнение", on_click=next_step, key="skip_gram")
+    else:
+        for block in blocks:
+            st.write(block)
+        st.success("Отличная работа! Чем лучше вы понимаете, как устроены эти конструкции, тем легче строить свои предложения без ошибок.")
+        show_image("Картинка 4.jpg")
+        st.button("Перейти к следующему упражнению", on_click=next_step, key="next_gram")
 
 elif st.session_state.step == 9:
     st.info("На этом шаге вы переходите к живому общению: аватар разговаривает с вами по-татарски по теме урока, задаёт вопросы и мягко исправляет ошибки. Это безопасное пространство, где можно спокойно тренировать речь, пробовать новые фразы и становиться увереннее в разговоре.")
@@ -160,6 +199,10 @@ elif st.session_state.step == 9:
     if 'avatar_chat' not in st.session_state:
         st.session_state.avatar_chat = [{"role": "assistant", "content": "Сәлам! Әйдә, дәрес темасына сөйләшик. (Привет! Давай поговорим по теме урока.)"}]
         st.session_state.chat_llm = Interaction_with_LLM()
+        
+        ctx_text = st.session_state.lesson_data.get('refined_text', '')
+        ctx_coll = st.session_state.lesson_data.get('collocations', '').split('|||')[0]
+        st.session_state.chat_llm.setup_avatar_context(ctx_text, ctx_coll)
 
     for msg in st.session_state.avatar_chat:
         st.chat_message(msg["role"]).write(msg["content"])
@@ -173,12 +216,14 @@ elif st.session_state.step == 9:
             st.session_state.avatar_chat.append({"role": "assistant", "content": reply})
             st.rerun()
 
+    st.write("---")
     st.button("Завершить разговор и перейти к минитесту", on_click=next_step)
 
 elif st.session_state.step == 10:
     st.write(f"Вы набрали {st.session_state.score} баллов за упражнения.")
     st.write("Ваше условное место в рейтинге активности: 12.")
     st.write("Вы прошли все этапы урока — от текста до диалога. Вы – молодец! Можете вернуться к новым материалам или повторить похожие задания по этой теме.")
+    show_image("Картинка 6.jpg")
     
     word_file = generate_word_document(st.session_state.lesson_data)
     st.download_button(

@@ -37,6 +37,7 @@ def convert_to_wav_16k(input_path: str, output_path: str):
     cmd = [
         "ffmpeg", "-y",
         "-i", input_path,
+        "-t", "180",
         "-ar", "16000",
         "-ac", "1",
         "-sample_fmt", "s16",
@@ -173,14 +174,21 @@ class Interaction_with_LLM:
 И эти ключевые слова: {collocations}
 
 Твои строгие правила:
-1. Проявляй инициативу: задавай вопросы по теме текста, предлагай разыграть сценку, используй слова из урока. Не жди, пока ученик сам попросит об этом.
-2. Мягко исправляй ошибки ученика, если они есть.
-3. ВСЕГДА пиши свои реплики на татарском языке и ОБЯЗАТЕЛЬНО давай перевод на русский в скобках. Пример: Исәнмесез! Хәлләр ничек? (Здравствуйте! Как дела?)
-4. Поддерживай разговор, чтобы ученику было интересно отвечать."""
+1. Проявляй инициативу: задавай вопросы по теме текста, предлагай разыграть сценку.
+2. Мягко исправляй ошибки ученика.
+3. ВСЕГДА пиши свои реплики на татарском языке и ОБЯЗАТЕЛЬНО давай перевод на русский в скобках.
+4. ТВОЯ ПЕРВАЯ РЕПЛИКА должна быть приветствием и сразу содержать вопрос к ученику по тексту урока (например, понравился ли рецепт, как прошел день и т.д.)."""
         self.messages.append({
             "role": "system",
             "content": prompt
         })
+
+    def generate_first_message(self) -> str:
+        self.messages.append({"role": "user", "content": "Начни наш диалог. Поздоровайся и задай мне первый вопрос по тексту."})
+        response = client.chat.completions.create(model=self.model, messages=self.messages)
+        reply = response.choices[0].message.content
+        self.messages.append({"role": "assistant", "content": reply})
+        return reply
 
     def chat_with_avatar(self, user_message: str) -> str:
         self.messages.append({"role": "user", "content": user_message})

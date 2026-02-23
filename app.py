@@ -25,7 +25,12 @@ def show_image(img_name):
 
 st.markdown("## На родном. Татарча.")
 st.markdown("Персонализированные уроки на основе живых аудио и видеоматериалов: загружайте свои файлы или выбирайте готовые ролики по интересам — сервис сам превратит их в цепочку понятных упражнений, чтобы вы постепенно и уверенно осваивали татарский язык.")
-st.download_button("Скачать пример урока (PDF)", b"PDF", file_name="example.pdf")
+
+example_path = os.path.join("materials", "tatar_lesson_example.docx")
+if os.path.exists(example_path):
+    with open(example_path, "rb") as f:
+        st.download_button("Скачать пример урока (Word)", f, file_name="tatar_lesson_example.docx")
+
 st.divider()
 
 if st.session_state.step == 0:
@@ -49,38 +54,63 @@ elif st.session_state.step == 1:
             st.rerun()
 
 elif st.session_state.step == 2:
+    def process_audio(input_path):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_out:
+            tmp_out_path = tmp_out.name
+        try:
+            convert_to_wav_16k(input_path, tmp_out_path)
+            raw_text = wav_recognition_with_chunk(tmp_out_path)
+            
+            llm = Interaction_with_LLM()
+            st.session_state.lesson_data['refined_text'] = llm.create_refined(raw_text)
+            st.session_state.lesson_data['frank_text'] = llm.create_i_frank_lesson()
+            st.session_state.lesson_data['collocations'] = llm.create_collocations_lesson()
+            st.session_state.lesson_data['matching'] = llm.create_matching_lesson()
+            st.session_state.lesson_data['gap_fill'] = llm.create_gap_fill_lesson()
+            st.session_state.lesson_data['logical'] = llm.create_logical_completion_lesson()
+            st.session_state.lesson_data['grammar'] = llm.create_grammar_digest_lesson()
+            
+            next_step()
+            st.rerun()
+        except Exception as e:
+            st.error("Что‑то пошло не так при обработке файла. Попробуйте ещё раз.")
+        finally:
+            if os.path.exists(tmp_out_path): os.remove(tmp_out_path)
+
     if st.session_state.upload_mode == 'custom':
         st.info("Вы можете загрузить аудиофайл в форматах MP3 или WAV. Максимальная длительность — до 3 минут, более длинные записи будут автоматически обрезаны до первых 3 минут. Максимальный размер файла — до 20 МБ.")
         uploaded_file = st.file_uploader("Загрузить файл", type=['mp3', 'wav'])
         
         if uploaded_file is not None:
-            with st.spinner("Обрабатываю ваш материал… Это может занять до минуты."):
+            with st.spinner("Обрабатываю ваш материал… Это может занять до 8 минут."):
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_in:
                     tmp_in.write(uploaded_file.getvalue())
                     tmp_in_path = tmp_in.name
                 
-                tmp_out_path = tmp_in_path.replace(".wav", "_16k.wav")
-                
-                try:
-                    convert_to_wav_16k(tmp_in_path, tmp_out_path)
-                    raw_text = wav_recognition_with_chunk(tmp_out_path)
-                    
-                    llm = Interaction_with_LLM()
-                    st.session_state.lesson_data['refined_text'] = llm.create_refined(raw_text)
-                    st.session_state.lesson_data['frank_text'] = llm.create_i_frank_lesson()
-                    st.session_state.lesson_data['collocations'] = llm.create_collocations_lesson()
-                    st.session_state.lesson_data['matching'] = llm.create_matching_lesson()
-                    st.session_state.lesson_data['gap_fill'] = llm.create_gap_fill_lesson()
-                    st.session_state.lesson_data['logical'] = llm.create_logical_completion_lesson()
-                    st.session_state.lesson_data['grammar'] = llm.create_grammar_digest_lesson()
-                    
-                    next_step()
-                    st.rerun()
-                except Exception as e:
-                    st.error("Что‑то пошло не так при загрузке файла. Попробуйте ещё раз или используйте другую запись.")
-                finally:
-                    if os.path.exists(tmp_in_path): os.remove(tmp_in_path)
-                    if os.path.exists(tmp_out_path): os.remove(tmp_out_path)
+                process_audio(tmp_in_path)
+                if os.path.exists(tmp_in_path): os.remove(tmp_in_path)
+
+    elif st.session_state.upload_mode == 'ready':
+        st.info("Выберите одну из тем и готовый аудиоролик.")
+        categories = {
+            "Знаменитости": ["Знаменитости_1.wav", "Знаменитости_2.wav"],
+            "Кулинария": ["Кулинария_1.wav", "Кулинария_2.wav"],
+            "Татарстан": ["Татарстан_1.wav", "Татарстан_2.wav"],
+            "История": ["История_1.wav", "История_2.wav"],
+            "Искусство и творчество": ["Искусство_1.wav", "Искусство_2.wav"]
+        }
+        
+        cat = st.selectbox("Тема", list(categories.keys()))
+        file_name = st.selectbox("Материал", categories[cat])
+        file_path = os.path.join("materials", file_name)
+        
+        if os.path.exists(file_path):
+            st.audio(file_path)
+            if st.button("Создать урок по этому материалу"):
+                with st.spinner("Обрабатываю ваш материал… Это может занять до 8 минут."):
+                    process_audio(file_path)
+        else:
+            st.warning(f"Файл {file_name} пока не загружен на сервер в папку materials.")
 
 elif st.session_state.step == 3:
     st.info("Сейчас вы знакомитесь с живым татарским текстом с подсказками-переводами. Просто читайте текст и в случае трудностей обращайтесь к переводу — так вы естественно привыкаете к языку, расширяете словарный запас и начинаете понимать фразы целиком, а не по одному слову.")
@@ -197,12 +227,15 @@ elif st.session_state.step == 9:
     st.info("На этом шаге вы переходите к живому общению: аватар разговаривает с вами по-татарски по теме урока, задаёт вопросы и мягко исправляет ошибки. Это безопасное пространство, где можно спокойно тренировать речь, пробовать новые фразы и становиться увереннее в разговоре.")
     
     if 'avatar_chat' not in st.session_state:
-        st.session_state.avatar_chat = [{"role": "assistant", "content": "Сәлам! Әйдә, дәрес темасына сөйләшик. (Привет! Давай поговорим по теме урока.)"}]
         st.session_state.chat_llm = Interaction_with_LLM()
-        
         ctx_text = st.session_state.lesson_data.get('refined_text', '')
         ctx_coll = st.session_state.lesson_data.get('collocations', '').split('|||')[0]
         st.session_state.chat_llm.setup_avatar_context(ctx_text, ctx_coll)
+        
+        with st.spinner("Аватар печатает первое сообщение..."):
+            first_msg = st.session_state.chat_llm.generate_first_message()
+            
+        st.session_state.avatar_chat = [{"role": "assistant", "content": first_msg}]
 
     for msg in st.session_state.avatar_chat:
         st.chat_message(msg["role"]).write(msg["content"])

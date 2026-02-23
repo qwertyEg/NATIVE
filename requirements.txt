@@ -1,0 +1,10 @@
+streamlit==1.32.0
+soundfile
+numpy==1.26.4
+torch
+transformers
+kenlm
+pyctcdecode
+openai
+python-docx
+python-dotenv

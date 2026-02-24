@@ -33,16 +33,12 @@ model = AutoModelForCTC.from_pretrained(MODEL_ID)
 model.to(DEVICE)
 model.eval()
 
-def convert_to_wav_16k(input_path: str, output_path: str):
-    cmd = [
-        "ffmpeg", "-y",
-        "-i", input_path,
-        "-t", "180",
-        "-ar", "16000",
-        "-ac", "1",
-        "-sample_fmt", "s16",
-        output_path
-    ]
+def convert_to_wav_16k(input_path: str, output_path: str, apply_limit: bool = True):
+    cmd = ["ffmpeg", "-y", "-i", input_path]
+    if apply_limit:
+        cmd.extend(["-t", "180"])
+    cmd.extend(["-ar", "16000", "-ac", "1", "-sample_fmt", "s16", output_path])
+    
     try:
         proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if proc.returncode != 0:

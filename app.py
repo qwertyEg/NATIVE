@@ -60,11 +60,11 @@ elif st.session_state.step == 1:
             st.rerun()
 
 elif st.session_state.step == 2:
-    def process_audio(input_path):
+    def process_audio(input_path, apply_limit=True):
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_out:
             tmp_out_path = tmp_out.name
         try:
-            convert_to_wav_16k(input_path, tmp_out_path)
+            convert_to_wav_16k(input_path, tmp_out_path, apply_limit=apply_limit)
             raw_text = wav_recognition_with_chunk(tmp_out_path)
             
             llm = Interaction_with_LLM()
@@ -85,7 +85,7 @@ elif st.session_state.step == 2:
 
     if st.session_state.upload_mode == 'custom':
         st.info("Вы можете загрузить аудиофайл в форматах MP3 или WAV. Максимальная длительность — до 3 минут, более длинные записи будут автоматически обрезаны до первых 3 минут. Максимальный размер файла — до 20 МБ.")
-        uploaded_file = st.file_uploader("Загрузить файл", type=['mp3', 'wav'])
+        uploaded_file = st.file_uploader("Загрузить файл", type=['mp3', 'wav', 'mp4'])
         
         if uploaded_file is not None:
             with st.spinner("Обрабатываю ваш материал… Это может занять до 8 минут."):
@@ -93,7 +93,7 @@ elif st.session_state.step == 2:
                     tmp_in.write(uploaded_file.getvalue())
                     tmp_in_path = tmp_in.name
                 
-                process_audio(tmp_in_path)
+                process_audio(tmp_in_path, apply_limit=True)
                 if os.path.exists(tmp_in_path): os.remove(tmp_in_path)
 
     elif st.session_state.upload_mode == 'link':
@@ -102,19 +102,19 @@ elif st.session_state.step == 2:
         if st.button("Создать урок по ссылке") and link_url:
             with st.spinner("Скачиваю и обрабатываю материал… Это может занять до 8 минут."):
                 tmp_dir = tempfile.gettempdir()
-                base_name = os.path.join(tmp_dir, f"dl_{os.urandom(4).hex()}")
+                base_name_tmp = os.path.join(tmp_dir, f"dl_{os.urandom(4).hex()}")
                 downloaded_file = None
                 
                 try:
                     if "vk.com" in link_url or "vkvideo.ru" in link_url:
-                        downloaded_file = download_vk(link_url, base_name)
+                        downloaded_file = download_vk(link_url, base_name_tmp)
                     elif "rutube.ru" in link_url:
-                        downloaded_file = download_rutube(link_url, base_name)
+                        downloaded_file = download_rutube(link_url, base_name_tmp)
                     else:
-                        downloaded_file = download_vk(link_url, base_name)
+                        downloaded_file = download_vk(link_url, base_name_tmp)
                     
                     if downloaded_file and os.path.exists(downloaded_file):
-                        process_audio(downloaded_file)
+                        process_audio(downloaded_file, apply_limit=True)
                     else:
                         st.error("Файл не был скачан. Проверьте ссылку.")
                 except Exception as e:
@@ -130,7 +130,7 @@ elif st.session_state.step == 2:
             "Кулинария": ["Кулинария_1.wav", "Кулинария_2.wav"],
             "Татарстан": ["Татарстан_1.wav", "Татарстан_2.wav"],
             "История": ["История_1.wav", "История_2.wav"],
-            "Искусство и творчество": ["Искусство_1.wav", "Искусство_2.wav"]
+            "Искусство и творчество": ["Творчество_1.wav"]
         }
         
         cat = st.selectbox("Тема", list(categories.keys()))
@@ -141,7 +141,7 @@ elif st.session_state.step == 2:
             st.audio(file_path)
             if st.button("Создать урок по этому материалу"):
                 with st.spinner("Обрабатываю ваш материал… Это может занять до 8 минут."):
-                    process_audio(file_path)
+                    process_audio(file_path, apply_limit=False)
         else:
             st.warning(f"Файл {file_name} пока не загружен на сервер в папку materials.")
 

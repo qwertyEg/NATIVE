@@ -2,6 +2,7 @@ import streamlit as st
 import os
 import tempfile
 from logic import Interaction_with_LLM, generate_word_document, convert_to_wav_16k, wav_recognition_with_chunk
+from media_downloader import download_vk, download_rutube
 
 st.set_page_config(page_title="На родном. Татарча.", layout="centered")
 
@@ -41,14 +42,19 @@ if st.session_state.step == 0:
 elif st.session_state.step == 1:
     st.chat_message("assistant").write("Выберите, с чего начать:\n— Загрузите свой файл (аудио или видео);\n— Вставьте ссылку на ролик;\n— Или выберите один из готовых материалов по интересам.")
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
-        if st.button("Загрузить свой материал"):
+        if st.button("Загрузить файл"):
             st.session_state.upload_mode = 'custom'
             next_step()
             st.rerun()
     with col2:
-        if st.button("Выбрать из готовых материалов"):
+        if st.button("Вставить ссылку"):
+            st.session_state.upload_mode = 'link'
+            next_step()
+            st.rerun()
+    with col3:
+        if st.button("Готовые материалы"):
             st.session_state.upload_mode = 'ready'
             next_step()
             st.rerun()
@@ -73,7 +79,7 @@ elif st.session_state.step == 2:
             next_step()
             st.rerun()
         except Exception as e:
-            st.error("Что‑то пошло не так при обработке файла. Попробуйте ещё раз.")
+            st.error(f"Ошибка при обработке аудио/нейросетью: {str(e)}")
         finally:
             if os.path.exists(tmp_out_path): os.remove(tmp_out_path)
 
@@ -89,6 +95,33 @@ elif st.session_state.step == 2:
                 
                 process_audio(tmp_in_path)
                 if os.path.exists(tmp_in_path): os.remove(tmp_in_path)
+
+    elif st.session_state.upload_mode == 'link':
+        st.info("Вставьте ссылку на видео или аудио с VK или RuTube. Мы автоматически скачаем аудиодорожку (до 3 минут) и подготовим урок.")
+        link_url = st.text_input("Ссылка на ролик:")
+        if st.button("Создать урок по ссылке") and link_url:
+            with st.spinner("Скачиваю и обрабатываю материал… Это может занять до 8 минут."):
+                tmp_dir = tempfile.gettempdir()
+                base_name = os.path.join(tmp_dir, f"dl_{os.urandom(4).hex()}")
+                downloaded_file = None
+                
+                try:
+                    if "vk.com" in link_url or "vkvideo.ru" in link_url:
+                        downloaded_file = download_vk(link_url, base_name)
+                    elif "rutube.ru" in link_url:
+                        downloaded_file = download_rutube(link_url, base_name)
+                    else:
+                        downloaded_file = download_vk(link_url, base_name)
+                    
+                    if downloaded_file and os.path.exists(downloaded_file):
+                        process_audio(downloaded_file)
+                    else:
+                        st.error("Файл не был скачан. Проверьте ссылку.")
+                except Exception as e:
+                    st.error(f"Не удалось скачать видео по ссылке. Ошибка: {str(e)}")
+                finally:
+                    if downloaded_file and os.path.exists(downloaded_file):
+                        os.remove(downloaded_file)
 
     elif st.session_state.upload_mode == 'ready':
         st.info("Выберите одну из тем и готовый аудиоролик.")
@@ -147,7 +180,7 @@ elif st.session_state.step == 5:
         with col2:
             st.button("Пропустить упражнение", on_click=next_step, key="skip_match")
     else:
-        st.success("Отличная работа! Ваш ответ учтен.")
+        st.success("Отличная работа! Ваш ответ учтен (+1 балл).")
         show_image("Картинка 3.jpg")
         st.button("Перейти к следующему упражнению", on_click=next_step, key="next_match")
 
@@ -168,7 +201,7 @@ elif st.session_state.step == 6:
         with col2:
             st.button("Пропустить упражнение", on_click=next_step, key="skip_gap")
     else:
-        st.success("Отличная работа! Ваш ответ учтен.")
+        st.success("Отличная работа! Ваш ответ учтен (+1 балл).")
         show_image("Картинка 3.jpg")
         st.button("Перейти к следующему упражнению", on_click=next_step, key="next_gap")
 
@@ -189,7 +222,7 @@ elif st.session_state.step == 7:
         with col2:
             st.button("Пропустить упражнение", on_click=next_step, key="skip_log")
     else:
-        st.success("Здорово! Вы пробуете выражать свои мысли по-татарски — с каждым таким шагом речь становится увереннее.")
+        st.success("Здорово! Вы пробуете выражать свои мысли по-татарски (+1 балл).")
         show_image("Картинка 2.jpg")
         st.button("Перейти к следующему упражнению", on_click=next_step, key="next_log")
 
@@ -219,7 +252,7 @@ elif st.session_state.step == 8:
     else:
         for block in blocks:
             st.write(block)
-        st.success("Отличная работа! Чем лучше вы понимаете, как устроены эти конструкции, тем легче строить свои предложения без ошибок.")
+        st.success("Отличная работа! Чем лучше вы понимаете, как устроены эти конструкции, тем легче строить свои предложения без ошибок (+1 балл).")
         show_image("Картинка 4.jpg")
         st.button("Перейти к следующему упражнению", on_click=next_step, key="next_gram")
 

@@ -8,3 +8,4 @@ pyctcdecode
 openai
 python-docx
 python-dotenv
+yt-dlp

@@ -43,9 +43,14 @@ def convert_to_wav_16k(input_path: str, output_path: str):
         "-sample_fmt", "s16",
         output_path
     ]
-    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if proc.returncode != 0:
-        raise RuntimeError()
+    try:
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if proc.returncode != 0:
+            err_msg = proc.stderr.decode('utf-8', errors='ignore')
+            raise RuntimeError(f"FFmpeg ошибка: {err_msg}")
+    except FileNotFoundError:
+        raise RuntimeError("Утилита FFmpeg не найдена в системе. Если ты на MacOS, выполни в терминале: brew install ffmpeg")
+    
     return output_path
 
 def wav_recognition_with_chunk(wav_path: str) -> str:
